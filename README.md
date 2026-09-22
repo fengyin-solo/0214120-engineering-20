@@ -18,12 +18,50 @@ npm install
 npm run dev
 ```
 
+### 回归检查
+
+```bash
+cd frontend-editor
+npm run check
+```
+
+## 可复现基线
+
+### 环境基线
+
+- Node >= 18、npm >= 9（`frontend-editor/package.json` 的 `engines` 声明）
+- 依赖按 `package-lock.json` 锁定；Docker 构建使用 `npm ci` 严格复现
+- 环境变量以 `frontend-editor/.env.example` 为唯一声明清单，复制为 `.env` 后按需修改：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `VITE_DEV_HOST` | `0.0.0.0` | dev / preview 监听地址 |
+| `VITE_DEV_PORT` | `5173` | dev 服务器端口 |
+| `VITE_PREVIEW_PORT` | `4173` | preview 服务器端口 |
+
+端口被占用时 dev / preview 会立即报错退出（`strictPort`），不会静默切换端口。
+
+### 回归检查覆盖（`npm run check`）
+
+| 阶段 | 检查内容 | 失败时的明确结果 |
+|------|----------|------------------|
+| env | Node/npm 版本、`.env` 与进程环境中的未知变量、端口变量合法性 | 列出全部未知变量与非法值 |
+| deps | `node_modules`、声明依赖、平台原生依赖（rollup/esbuild） | 列出缺失依赖及修复命令 |
+| ports | dev / preview 端口未被占用 | 列出被占用的端口 |
+| entry | `#app` 挂载、`createEditor` 入口、Markdown 区域解析自检 | 指出缺失的入口或自检失败项 |
+| build | `npm run build` 必须成功 | 退出码非 0 并附构建日志尾部 |
+| artifacts | `dist/index.html` 与入口 JS 产物存在且非空 | 指出缺失的产物文件 |
+| serve | dev 与 preview 服务器启动冒烟（`/`、入口模块、入口产物） | 指出不可访问的地址 |
+
+约束：检查只读取业务源码、不做任何改写；冒烟启动的服务在退出前无条件回收，不残留进程。支持 `--only=env,deps` 与 `--skip=serve` 参数做局部检查（见 `node scripts/check.mjs --help`）。
+
 ## Services
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | MD Live Editor | http://localhost:8081 | Docker 部署 |
 | MD Live Editor (dev) | http://localhost:5173 | 本地开发 |
+| MD Live Editor (preview) | http://localhost:4173 | 构建产物预览 |
 
 ## 测试账号
 

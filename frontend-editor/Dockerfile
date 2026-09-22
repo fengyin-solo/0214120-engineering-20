@@ -1,8 +1,9 @@
 # Stage 1: Build
 FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+# 锁定依赖版本，保证可复现构建（npm ci 严格按 lockfile 安装）
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
 
